@@ -1,6 +1,6 @@
 -module(erlunk).
 
--export([login/3,extract_token/1, search/3, get_job_status/3]).
+-export([login/3,extract_token/1, search/3, get_job_status/3,get_results/3]).
 
 
 
@@ -13,9 +13,34 @@ search(Query, Endpoint, Token)->
      {ok, {{_, StatusCode, _}, ResponseHeaders, Body}}=httpc:request(post, {lists:flatten([Endpoint, "/services/search/jobs"]), [{"Authorization", lists:flatten(["Splunk ", Token])}], "application/x-www-form-urlencoded", lists:flatten(["search=search ",Query])}, [],[]),
     case StatusCode of
 	201 ->
-	    extract_sid(Body);
+	    Sid=extract_sid(Body),
+	    get_results_when_ready(Sid, Endpoint, Token);
 	_  -> {err, StatusCode}
     end.
+
+get_results_when_ready(Sid, Endpoint, Token)->
+    Status=get_job_status(Sid, Endpoint, Token),    
+    case Status  of
+	"DONE" ->
+	    get_results(Sid, Endpoint, Token);
+	"FAILED" -> {err, Status};
+	"PAUSED" -> {err, Status};
+	_ -> io:fwrite("~s~n...", [Status]),
+	     timer:sleep(5000),
+	     get_results_when_ready(Sid, Endpoint, Token)
+    end.
+
+get_results(Sid, Endpoint, Token)->
+     {ok, {{_, StatusCode, _}, ResponseHeaders, Body}}=httpc:request(get, {lists:flatten([Endpoint, "/services/search/jobs/", Sid, "/results?output_mode=xml"]), [{"Authorization", lists:flatten(["Splunk ", Token])}]}, [],[]),
+    case StatusCode of
+	200 ->
+	    Body,
+	    {ok, FileDescriptor} = file:open("/tmp/output.txt", [write]),
+	    io:format(FileDescriptor, "~s~n~nend~n~n", [Body]),
+	    file:close(FileDescriptor);
+	_  -> {err, StatusCode}
+    end.
+    
 
 
 get_job_status(Sid, Endpoint, Token)->
