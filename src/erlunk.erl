@@ -10,7 +10,7 @@
 
 % "index=release_runner \"Build Failed\""
 search(Query, Endpoint, Token)->
-     {ok, {{_, StatusCode, _}, ResponseHeaders, Body}}=httpc:request(post, {lists:flatten([Endpoint, "/services/search/jobs"]), [{"Authorization", lists:flatten(["Splunk ", Token])}], "application/x-www-form-urlencoded", lists:flatten(["search=search ",Query])}, [],[]),
+     {ok, {{_, StatusCode, _}, ResponseHeaders, Body}}=httpc:request(post, {lists:flatten([Endpoint, "/services/search/jobs"]), [{"Authorization", lists:flatten(["Splunk ", Token])}], "application/x-www-form-urlencoded", lists:flatten(["search=search ",replace_equalsign(Query)])}, [],[]),
     case StatusCode of
 	201 ->
 	    Sid=extract_sid(Body),
@@ -91,6 +91,11 @@ extract_token(Body)->
 extract_sid(Body)->
     extract_element_value(4, Body).
     
+replace_equalsign(String)->
+    Tokens=string:tokens(String,"="),
+    [H|T]=Tokens,
+    lists:flatten([H, [lists:flatten(["%3d",X])|| X <-T]]).
+
 
 
 
@@ -107,5 +112,15 @@ extract_token_test()->
 extract_sid_test()->
     Sid=extract_sid("<?xml version='1.0' encoding='UTF-8'?>\n<response><sid>1354291037.69</sid></response>"),
     ?assert(Sid=:="1354291037.69").
+
+replace_equalsign_test()->
+    Replaced1=replace_equalsign("index=release_runner Error"),
+    ?assert(Replaced1=:="index%3drelease_runner Error"),
+    Replaced2=replace_equalsign("foo bar Error"),
+    ?assert(Replaced2=:="foo bar Error"),
+    Replaced3=replace_equalsign("foo=bar=Error"),
+    ?assert(Replaced3=:="foo%3dbar%3dError").
+      
+
 
 -endif.
