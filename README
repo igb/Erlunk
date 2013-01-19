@@ -1,1 +1,13 @@
 Splunk API client for Erlang.
+
+Usage: 
+
+application:start(inets).
+application:start(crypto).
+application:start(public_key).
+application:start(ssl).       
+Endpoint="http://shared-logsearch2-2-sfm.ops.sfdc.net:8211".
+Token=erlunk:login("Login", "Password", Endpoint).
+erlunk:search("index=my_app_log_index Error", Endpoint, Token).
+erlunk:search("earliest_time=1355616000 latest_time=1356220800 index=release_runner Welcome", Endpoint, Token).
+erlunk:download_source("my_app_log_index", "/home/aerlang/opstoolchain/prod/aerlang-deploy-1913-01-19_14-05-52.log", "/tmp/dnld.txt", Endpoint, Token).
