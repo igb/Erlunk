@@ -60,9 +60,9 @@ get_results(Sid, Endpoint, Token, Offset, Acc)->
 	200 ->
 	    Body,
 	    % write to tmp file for debugging...
-	    {ok, FileDescriptor} = file:open("/tmp/output.txt", [write]),
-	    io:format(FileDescriptor, "~s~n~nend~n~n", [Body]),
-	    file:close(FileDescriptor),
+	    % {ok, FileDescriptor} = file:open("/tmp/output.txt", [write]),
+	    % io:format(FileDescriptor, "~s~n~nend~n~n", [Body]),
+	    % file:close(FileDescriptor),
 	    
 	    % parse XML
 	    Results=parse_results(Body),
@@ -70,7 +70,7 @@ get_results(Sid, Endpoint, Token, Offset, Acc)->
 		no_results->Acc;
 		_-> NewAcc=lists:append([Acc,Results]),
 		    [{{offset, NewOffsetStr}, _}|_]=lists:nthtail(length(Results) -1, Results),
-		    io:fwrite("new offset: ~p~n",[NewOffsetStr]),
+		    %io:fwrite("new offset: ~p~n",[NewOffsetStr]),
 		    {NewOffsetInt,[]}=string:to_integer(NewOffsetStr),
 		    get_results(Sid, Endpoint, Token, NewOffsetInt + 1, NewAcc)
 	    end;
@@ -94,7 +94,8 @@ parse_results(Body)->
 	    lists:map(fun(X)->
 			      {result,[{offset,Offset}],ResultFields}=X,
 			      {{offset, Offset},
-			       lists:map(fun(Y)-> io:fwrite("~p~n",[Y]),
+			       lists:map(fun(Y)-> 
+						 %io:fwrite("~p~n",[Y]),
 						 {field,[{k,FieldName}], ValueStruct}=Y,
 						 Value=extract_value(ValueStruct),
 						 {FieldName, Value}
@@ -139,7 +140,7 @@ strip_whitespace_from_xml(XmlStruct)->
 
 get_job_status(Sid, Endpoint, Token)->
     Url=lists:flatten([Endpoint, "/services/search/jobs/", Sid]),
-    io:format("~p~n", [Url]),
+   % io:format("~p~n", [Url]),
     
     {ok, {{_, StatusCode, _}, ResponseHeaders, Body}}=httpc:request(get, {Url, [{"Authorization", lists:flatten(["Splunk ", Token])}]}, [],[]),
     case StatusCode of 
@@ -167,7 +168,7 @@ login(Username, Password, Endpoint)->
     case StatusCode of 
 	303->
 	    {_,Location}=lists:keyfind("location", 1, ResponseHeaders),
-	    io:fwrite("~p", [Location]),
+	    %io:fwrite("~p", [Location]),
 	    {ok, {{_, StatusCode, _}, ResponseHeaders, Body}}=httpc:request(post, {Location, [{"content-length", length(RequestBody)}], "application/x-www-form-urlencoded", RequestBody}, [],[]);
         401-> {err, "Failed to authenticate."};
 	200  -> extract_token(Body);

@@ -1,0 +1,14 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%! -pa ./ebin
+
+main([Index, Source, LocalFile, Login, Password, Endpoint]) ->
+    application:start(inets),
+    application:start(crypto),    
+    application:start(public_key),    
+    application:start(ssl), 
+    Token=erlunk:login(Login, Password, Endpoint),
+    io:fwrite("running query~n", []),
+    erlunk:download_source(Index, Source, LocalFile, Endpoint, Token),
+    io:fwrite("downloaded query results to ~p~n", [LocalFile]).
+
